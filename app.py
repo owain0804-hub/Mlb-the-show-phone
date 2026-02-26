@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="Baseball 9 Pro", layout="centered")
+st.set_page_config(page_title="Baseball 9 Web", layout="centered")
 
 game_code = """
 <!DOCTYPE html>
@@ -9,257 +9,204 @@ game_code = """
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
-        /* Base Setup */
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: 'Arial Black', sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #111; font-family: 'Arial', sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
         
-        /* The 3D Stadium */
-        #game-screen { position: relative; width: 100%; max-width: 500px; height: 100vh; max-height: 800px; margin: 0 auto; background: linear-gradient(to bottom, #1e3c72, #2a5298); overflow: hidden; }
+        #game-screen { position: relative; width: 100%; max-width: 800px; height: 100vh; max-height: 450px; margin: 0 auto; background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Target_Field_Minnesota_Twins.jpg/800px-Target_Field_Minnesota_Twins.jpg') no-repeat center center/cover; overflow: hidden; }
         
-        /* The Field */
-        #field-perspective { position: absolute; bottom: 0; width: 100%; height: 60%; perspective: 600px; }
-        #grass { position: absolute; bottom: -20%; left: -50%; width: 200%; height: 150%; background: linear-gradient(to top, #137547, #0b4529); transform: rotateX(60deg); border-top: 5px solid #fff; }
-        #dirt-mound { position: absolute; top: 10%; left: 50%; transform: translateX(-50%); width: 120px; height: 40px; background: #a67c52; border-radius: 50%; border: 2px solid #5c4033; }
-        #home-plate { position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%); width: 60px; height: 40px; background: #fff; clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%); }
+        /* Dark overlay to match the night game vibe */
+        #game-screen::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1; pointer-events: none; }
 
-        /* Jumbotron Scoreboard */
-        #scoreboard { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); width: 90%; background: #111; border: 4px solid #444; border-radius: 10px; display: flex; justify-content: space-between; padding: 10px 20px; color: #fff; box-sizing: border-box; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
-        .sb-stat { text-align: center; }
-        .sb-label { font-size: 10px; color: #888; display: block; }
-        .sb-val { font-size: 22px; color: #f1c40f; }
-
-        /* Players */
-        #pitcher { position: absolute; top: 40%; left: 50%; transform: translateX(-50%); font-size: 40px; z-index: 10; transition: transform 0.2s; }
-        #batter { position: absolute; bottom: 18%; left: 25%; font-size: 70px; z-index: 30; transform-origin: bottom center; transition: transform 0.15s ease-out; filter: drop-shadow(5px 5px 2px rgba(0,0,0,0.5)); }
-
-        /* The Strike Zone & PCI */
-        #strike-zone { position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%); width: 120px; height: 160px; border: 3px solid rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.05); z-index: 20; box-sizing: border-box; }
-        #pci { position: absolute; width: 44px; height: 44px; background: rgba(241, 196, 15, 0.4); border: 3px solid #f1c40f; border-radius: 50%; transform: translate(-50%, -50%); z-index: 25; box-shadow: 0 0 10px #f1c40f; pointer-events: none; }
-        #pci::after { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 6px; height: 6px; background: #fff; border-radius: 50%; }
-
-        /* The Ball */
-        #ball { position: absolute; width: 15px; height: 15px; background: radial-gradient(circle at 30% 30%, #fff, #ccc); border-radius: 50%; z-index: 22; display: none; transform: translate(-50%, -50%); box-shadow: -2px 5px 5px rgba(0,0,0,0.3); }
-
-        /* Controls Area (Two-Thumb System) */
-        #controls-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 50; display: flex; }
-        #left-joystick { width: 50%; height: 100%; } /* Invisible hit area for dragging PCI */
-        #right-buttons { width: 50%; height: 100%; position: relative; }
+        /* --- BASEBALL 9 UI RECREATION --- */
         
-        #swing-btn { position: absolute; bottom: 10%; right: 10%; width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(#e74c3c, #c0392b); border: 6px solid #fff; color: white; font-size: 22px; font-weight: bold; box-shadow: 0 8px 0 #922b21, 0 15px 20px rgba(0,0,0,0.5); }
-        #swing-btn:active { transform: translateY(8px); box-shadow: 0 0 0 #922b21, 0 5px 10px rgba(0,0,0,0.5); }
+        /* Top Left Scoreboard */
+        #top-left-sb { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 5px; display: flex; z-index: 10; width: 160px; color: white; }
+        .team-col { flex: 2; padding: 5px; font-size: 12px; font-weight: bold; border-right: 1px solid #444; }
+        .team-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .score-col { flex: 1; padding: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; color: black; font-weight: bold; font-size: 14px; }
+        
+        /* Top Right Player Card */
+        #top-right-card { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 5px; padding: 5px 10px; z-index: 10; color: white; width: 140px; }
+        .card-name { font-size: 12px; font-weight: bold; border-bottom: 1px solid #555; padding-bottom: 3px; margin-bottom: 3px; text-align: right; }
+        .card-stats { display: flex; justify-content: space-between; font-size: 10px; color: #ccc; }
 
-        /* UI Overlays */
-        #ready-btn { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 40px; font-size: 24px; background: #f1c40f; color: #000; border: none; border-radius: 30px; font-weight: bold; box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 100; }
-        #message { position: absolute; top: 30%; left: 0; width: 100%; text-align: center; font-size: 40px; color: #fff; font-style: italic; text-shadow: 3px 3px 0 #000; z-index: 60; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+        /* Strike Zone (Like the screenshot) */
+        #strike-zone { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); width: 100px; height: 130px; border: 1px solid rgba(255, 255, 255, 0.2); z-index: 20; display: flex; align-items: center; justify-content: center; }
+        /* The corner brackets */
+        #strike-zone::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: 
+            linear-gradient(to right, #fff 2px, transparent 2px) 0 0, linear-gradient(to right, #fff 2px, transparent 2px) 0 100%, 
+            linear-gradient(to left, #fff 2px, transparent 2px) 100% 0, linear-gradient(to left, #fff 2px, transparent 2px) 100% 100%, 
+            linear-gradient(to bottom, #fff 2px, transparent 2px) 0 0, linear-gradient(to bottom, #fff 2px, transparent 2px) 100% 0, 
+            linear-gradient(to top, #fff 2px, transparent 2px) 0 100%, linear-gradient(to top, #fff 2px, transparent 2px) 100% 100%; 
+            background-repeat: no-repeat; background-size: 10px 10px; }
+        /* Center reticle */
+        #pci { position: absolute; width: 30px; height: 30px; border: 1px dashed rgba(255,255,255,0.7); z-index: 25; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        #pci::after { content: ''; width: 4px; height: 4px; background: red; border-radius: 50%; }
+
+        /* Bottom Center Toggles */
+        #bottom-toggles { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; background: rgba(0,0,0,0.6); border: 1px solid #555; border-radius: 20px; overflow: hidden; z-index: 10; }
+        .toggle-btn { padding: 5px 15px; font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; border-right: 1px solid #444; }
+        .toggle-active { background: #3498db; color: white; }
+
+        /* The Big "READY" Button */
+        #ready-btn { position: absolute; bottom: 20px; right: 20px; width: 80px; height: 80px; border-radius: 50%; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.3); color: white; font-size: 14px; font-weight: bold; z-index: 50; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
+        #ready-btn:active { background: rgba(255,255,255,0.2); }
+
+        /* Field Elements */
+        #pitcher { position: absolute; top: 45%; left: 50%; transform: translateX(-50%); font-size: 30px; z-index: 5; }
+        #batter { position: absolute; bottom: 10%; left: 35%; font-size: 60px; z-index: 30; transform-origin: bottom center; }
+        #ball { position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%; z-index: 22; display: none; transform: translate(-50%, -50%); box-shadow: 0 0 5px #fff; }
+
+        #controls-layer { position: absolute; top: 0; left: 0; width: 50%; height: 100%; z-index: 40; }
+        #message { position: absolute; top: 30%; width: 100%; text-align: center; font-size: 30px; color: #fff; font-weight: bold; z-index: 60; opacity: 0; text-shadow: 2px 2px 4px #000; pointer-events: none; }
     </style>
 </head>
 <body>
 
 <div id="game-screen">
     
-    <div id="scoreboard">
-        <div class="sb-stat"><span class="sb-label">AWAY</span><span class="sb-val" id="score">0</span></div>
-        <div class="sb-stat"><span class="sb-label">OUTS</span><span class="sb-val" id="outs">0</span></div>
-        <div class="sb-stat"><span class="sb-label">INNING</span><span class="sb-val" id="inning">1</span></div>
-    </div>
-
-    <div id="field-perspective">
-        <div id="grass"></div>
-        <div id="dirt-mound"></div>
-        <div id="home-plate"></div>
-    </div>
-
-    <div id="pitcher">⚾🧢</div>
-    
-    <div id="strike-zone"></div>
-    
-    <div id="pci"></div>
-    
-    <div id="ball"></div>
-
-    <div id="batter">🏏🪖</div>
-
-    <button id="ready-btn" onclick="setupPitch()">READY</button>
-    <div id="message">PERFECT!</div>
-
-    <div id="controls-layer">
-        <div id="left-joystick"></div>
-        <div id="right-buttons">
-            <button id="swing-btn" onclick="swing()">SWING</button>
+    <div id="top-left-sb">
+        <div class="team-col">
+            <div class="team-row"><span style="color:#e74c3c;">RANGERS</span> <span>3</span></div>
+            <div class="team-row"><span style="color:#3498db;">CHALLENGERS</span> <span>3</span></div>
+        </div>
+        <div class="score-col">
+            <div>▲ 6</div>
+            <div>0 - 0</div>
         </div>
     </div>
+
+    <div id="top-right-card">
+        <div class="card-name">SP T. Howell ⚾</div>
+        <div class="card-stats"><span>ERA 4.16</span> <span>102 MPH</span></div>
+    </div>
+
+    <div id="pitcher">⚾</div>
+    <div id="batter">🏏</div>
+
+    <div id="strike-zone"></div>
+    <div id="pci"></div>
+    <div id="ball"></div>
+
+    <div id="message">PERFECT!</div>
+
+    <div id="bottom-toggles">
+        <div class="toggle-btn">CONTACT</div>
+        <div class="toggle-btn toggle-active">POWER</div>
+        <div class="toggle-btn">BUNT</div>
+    </div>
+
+    <div id="controls-layer"></div>
+    <div id="ready-btn" onclick="startPlay()">READY</div>
 
 </div>
 
 <script>
-    // Game State
-    let state = { score: 0, outs: 0, inning: 1 };
-    let engine = { mode: 'idle', pitchStartTime: 0, pitchDuration: 900, reqId: null };
+    let mode = 'idle';
+    let pTime = 0;
+    const pDur = 800;
+    let reqId = null;
     
-    // Elements
     const ball = document.getElementById('ball');
     const pci = document.getElementById('pci');
     const msg = document.getElementById('message');
     const readyBtn = document.getElementById('ready-btn');
-    const batter = document.getElementById('batter');
-    const leftPad = document.getElementById('left-joystick');
-    const szRect = document.getElementById('strike-zone').getBoundingClientRect();
+    const leftPad = document.getElementById('controls-layer');
     const gameRect = document.getElementById('game-screen').getBoundingClientRect();
 
-    // Physics Coordinates
-    let pciPos = { x: gameRect.width / 2, y: gameRect.height * 0.65 };
-    let ballStart = { x: gameRect.width / 2, y: gameRect.height * 0.45 };
-    let ballTarget = { x: 0, y: 0 };
-    let currentBall = { x: 0, y: 0 };
+    let pciPos = { x: gameRect.width / 2, y: gameRect.height * 0.7 };
+    let bStart = { x: gameRect.width / 2, y: gameRect.height * 0.5 };
+    let bTarget = { x: 0, y: 0 };
+    let cBall = { x: 0, y: 0 };
 
-    // Set initial PCI position
-    updatePCI();
+    pci.style.left = pciPos.x + 'px';
+    pci.style.top = pciPos.y + 'px';
 
-    // ==========================================
-    // 1. LEFT THUMB: DRAG PCI LOGIC
-    // ==========================================
-    let touchStart = null;
-    let pciStart = null;
-
+    // Drag PCI
+    let tStart = null;
+    let pStart = null;
     leftPad.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // Stop scrolling
-        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        pciStart = { x: pciPos.x, y: pciPos.y };
+        e.preventDefault();
+        tStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        pStart = { x: pciPos.x, y: pciPos.y };
     });
-
     leftPad.addEventListener('touchmove', (e) => {
         e.preventDefault();
-        if(!touchStart) return;
-        
-        let dx = e.touches[0].clientX - touchStart.x;
-        let dy = e.touches[0].clientY - touchStart.y;
-        
-        // Move PCI (multiplier for sensitivity)
-        pciPos.x = pciStart.x + (dx * 1.5);
-        pciPos.y = pciStart.y + (dy * 1.5);
-        
-        updatePCI();
-    });
-
-    function updatePCI() {
+        if(!tStart) return;
+        pciPos.x = pStart.x + ((e.touches[0].clientX - tStart.x) * 1.5);
+        pciPos.y = pStart.y + ((e.touches[0].clientY - tStart.y) * 1.5);
         pci.style.left = pciPos.x + 'px';
         pci.style.top = pciPos.y + 'px';
-    }
+    });
 
-    // ==========================================
-    // 2. THE PITCH ENGINE (requestAnimationFrame)
-    // ==========================================
-    function setupPitch() {
-        if(engine.mode !== 'idle') return;
-        
-        readyBtn.style.display = 'none';
-        msg.style.opacity = '0';
-        
-        // Randomize target INSIDE the strike zone
-        let zoneRect = document.getElementById('strike-zone').getBoundingClientRect();
-        ballTarget.x = zoneRect.left + (Math.random() * zoneRect.width);
-        ballTarget.y = zoneRect.top + (Math.random() * zoneRect.height);
-
-        // Reset ball
-        ball.style.display = 'block';
-        
-        // Pitcher animation
-        document.getElementById('pitcher').style.transform = 'translateX(-50%) scale(1.2) rotate(15deg)';
-        setTimeout(() => { document.getElementById('pitcher').style.transform = 'translateX(-50%) scale(1) rotate(0)'; }, 200);
-
-        // Start engine
-        engine.mode = 'pitching';
-        engine.pitchStartTime = performance.now();
-        engine.reqId = requestAnimationFrame(animatePitch);
-    }
-
-    function animatePitch(now) {
-        if(engine.mode !== 'pitching') return;
-
-        let elapsed = now - engine.pitchStartTime;
-        let t = elapsed / engine.pitchDuration; // 0.0 to 1.0
-
-        if (t > 1.2) { // Ball went past catcher
-            endPlay("STRIKE!", false);
+    function startPlay() {
+        if(mode === 'pitching') {
+            swing();
             return;
         }
-
-        // Math for 3D trajectory (Cubic ease-in makes it look like it's accelerating towards you)
-        let easeT = t * t * t; 
         
-        currentBall.x = ballStart.x + ((ballTarget.x - ballStart.x) * t);
-        currentBall.y = ballStart.y + ((ballTarget.y - ballStart.y) * easeT);
-        let scale = 0.3 + (1.5 * easeT); // Ball gets bigger
+        // Setup Pitch
+        readyBtn.innerText = "SWING";
+        readyBtn.style.background = "rgba(231, 76, 60, 0.6)"; // Turns red like a swing button
+        msg.style.opacity = '0';
+        
+        let zRect = document.getElementById('strike-zone').getBoundingClientRect();
+        let screenRect = document.getElementById('game-screen').getBoundingClientRect();
+        
+        bTarget.x = (zRect.left - screenRect.left) + (Math.random() * zRect.width);
+        bTarget.y = (zRect.top - screenRect.top) + (Math.random() * zRect.height);
 
-        ball.style.left = currentBall.x + 'px';
-        ball.style.top = currentBall.y + 'px';
-        ball.style.transform = `translate(-50%, -50%) scale(${scale})`;
-
-        engine.reqId = requestAnimationFrame(animatePitch);
+        ball.style.display = 'block';
+        mode = 'pitching';
+        pTime = performance.now();
+        reqId = requestAnimationFrame(animate);
     }
 
-    // ==========================================
-    // 3. RIGHT THUMB: SWING LOGIC
-    // ==========================================
+    function animate(now) {
+        if(mode !== 'pitching') return;
+        let t = (now - pTime) / pDur;
+
+        if (t > 1.2) { end("STRIKE!"); return; }
+
+        let ease = t * t * t; 
+        cBall.x = bStart.x + ((bTarget.x - bStart.x) * t);
+        cBall.y = bStart.y + ((bTarget.y - bStart.y) * ease);
+        
+        ball.style.left = cBall.x + 'px';
+        ball.style.top = cBall.y + 'px';
+        ball.style.transform = `translate(-50%, -50%) scale(${0.5 + (2 * ease)})`;
+
+        reqId = requestAnimationFrame(animate);
+    }
+
     function swing() {
-        if(engine.mode !== 'pitching') return;
+        document.getElementById('batter').style.transform = 'rotate(-30deg) scale(1.1)';
+        setTimeout(() => { document.getElementById('batter').style.transform = 'rotate(0) scale(1)'; }, 200);
 
-        // Batter Swing Animation
-        batter.style.transform = 'rotate(-45deg) scale(1.2) translateX(-20px)';
-        setTimeout(() => { batter.style.transform = 'rotate(0) scale(1) translateX(0)'; }, 250);
+        let t = (performance.now() - pTime) / pDur;
+        let dist = Math.sqrt(Math.pow(pciPos.x - cBall.x, 2) + Math.pow(pciPos.y - cBall.y, 2));
 
-        // Calculate Timing (t)
-        let elapsed = performance.now() - engine.pitchStartTime;
-        let t = elapsed / engine.pitchDuration;
-
-        // Calculate Aim (Distance between PCI and Ball Target)
-        let dist = Math.sqrt(Math.pow(pciPos.x - currentBall.x, 2) + Math.pow(pciPos.y - currentBall.y, 2));
-
-        // Logic check!
-        if (t > 0.80 && t < 1.1) { // Good Timing Window
-            if (dist < 30) {
-                endPlay("🔥 PERFECT! HR!", true);
-                ball.style.display = 'none'; // Ball disappears off bat
-            } else if (dist < 65) {
-                endPlay("⚾ BASE HIT", true);
-                ball.style.display = 'none';
-            } else {
-                endPlay("POP OUT!", false);
-            }
+        if (t > 0.85 && t < 1.1) {
+            if (dist < 25) end("PERFECT HIT!");
+            else if (dist < 50) end("GOOD HIT");
+            else end("FLY OUT");
         } else {
-            endPlay("WHIFF!", false); // Swung too early or late
+            end("SWING & MISS");
         }
     }
 
-    function endPlay(message, isHit) {
-        engine.mode = 'idle';
-        cancelAnimationFrame(engine.reqId);
-        
-        msg.innerText = message;
+    function end(m) {
+        mode = 'idle';
+        cancelAnimationFrame(reqId);
+        msg.innerText = m;
         msg.style.opacity = '1';
-        if(isHit) msg.style.color = '#2ecc71';
-        else msg.style.color = '#e74c3c';
-
-        if(isHit) state.score++;
-        else state.outs++;
-
-        if(state.outs >= 3) {
-            state.outs = 0;
-            state.inning++;
-            setTimeout(() => alert("Inning Over!"), 100);
-        }
-
-        document.getElementById('score').innerText = state.score;
-        document.getElementById('outs').innerText = state.outs;
-        document.getElementById('inning').innerText = state.inning;
-
-        setTimeout(() => {
-            ball.style.display = 'none';
-            readyBtn.style.display = 'block';
-        }, 1500);
+        readyBtn.innerText = "READY";
+        readyBtn.style.background = "rgba(0,0,0,0.6)";
+        setTimeout(() => { ball.style.display = 'none'; }, 1000);
     }
 </script>
 </body>
 </html>
 """
 
-components.html(game_code, height=750)
+# Adjust height to match a landscape mobile game perspective
+components.html(game_code, height=450)
